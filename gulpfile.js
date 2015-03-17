@@ -15,7 +15,8 @@ var pkg = require('./package.json'),
   opn = require('opn'),
   ghpages = require('gh-pages'),
   path = require('path'),
-  isDist = process.argv.indexOf('serve') === -1;
+  isDist = process.argv.indexOf('serve') === -1,
+  fs = require('fs');
 
 gulp.task('js', ['clean:js'], function() {
   return gulp.src('src/scripts/main.js')
@@ -28,9 +29,13 @@ gulp.task('js', ['clean:js'], function() {
 });
 
 gulp.task('html', ['clean:html'], function() {
+  var locals = {
+    animals: fs.readFileSync('examples/animals.html'),
+    animals2: fs.readFileSync('examples/animals2.html')
+  };
   return gulp.src('src/index.jade')
     .pipe(isDist ? through() : plumber())
-    .pipe(jade({ pretty: true }))
+    .pipe(jade({ pretty: true, locals: locals }))
     .pipe(rename('index.html'))
     .pipe(gulp.dest('dist'))
     .pipe(connect.reload());
@@ -86,10 +91,10 @@ gulp.task('connect', ['build'], function(done) {
   connect.server({
     root: 'dist',
     livereload: true,
-    port: 3000
+    port: 1337
   });
 
-  opn('http://localhost:3000', done);
+  opn('http://localhost:1337', done);
 });
 
 gulp.task('watch', function() {

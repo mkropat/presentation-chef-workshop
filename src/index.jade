@@ -15,53 +15,683 @@ html
         h1 Chef Workshop
 
       section
-        h2 Keyboard Interaction
-        h3 Powered by <a href="https://github.com/markdalgleish/bespoke-keys">bespoke-keys</a>
+        h2 Outline
+        p Let's use Chef to make a site that does stuff
 
       section
-        h2 Touch Interaction
-        h3 Powered by <a href="https://github.com/markdalgleish/bespoke-touch">bespoke-touch</a>
-
-      section
-        h2 Responsive Slides
-        h3 Powered by <a href="https://github.com/markdalgleish/bespoke-scale">bespoke-scale</a>
-
-      section
-        h2 Bullet List
-        h3.bullet Powered by <a href="https://github.com/markdalgleish/bespoke-bullets">bespoke-bullets</a>
+        h2 Slides
         ul
-          li Bullet 1
-          li Bullet 2
-          li Bullet 3
+          li.bullet
+            | Follow along at:<br/>
+            a(href='http://mkropat.github.io/presentation-chef-workshop/') http://mkropat.github.io/presentation-chef-workshop/
+          li.bullet Keep in mind: the slides are boring
+          li.bullet All the interesting bits come from the questions you ask
+          li.bullet Also: typing in the Chef-y bits helps you learn
 
       section
-        h2 Syntax Highlighting
-        h3 Powered by <a href="http://twitter.com/LeaVerou">Lea Verou</a>'s <a href="https://github.com/LeaVerou/prism">Prism</a>
-        pre
-          code.language-javascript.
-            bespoke.from('article', [
-              classes(),
-              keys(),
-              touch(),
-              bullets('li, .bullet')
-            ]);
-
-      section(data-bespoke-hash='named-route')
-        h2 Named Route
-        h3 Powered by <a href="https://github.com/markdalgleish/bespoke-hash">bespoke-hash</a>
-        p Look up! This route has been named with a <em>'data-bespoke-hash'</em> attribute.
-
-      section
-        h2.bullet Just the beginning...
-        br
-        ul
-          li Edit <a href="http://jade-lang.com/">Jade</a> markup in <em>'src/index.jade'</em>
-          li Edit <a href="http://learnboost.github.io/stylus/">Stylus</a> styles in <em>'src/styles/main.styl'</em>
-          li Edit JavaScript in <em>'src/scripts/main.js'</em>
-        br
+        h2 Pre-Requisites
         ul
           li
-            strong Enjoy! :)
-            a(href='http://twitter.com/markdalgleish')  -@markdalgleish
+            a(href='https://downloads.chef.io/chef-dk/') ChefDK
+          li
+            a(href='https://nodejs.org/') Node.js
+          li
+            a(href='https://www.vagrantup.com/downloads.html') Vagrant
+          li
+            a(href='https://www.virtualbox.org/wiki/Downloads') VirtualBox
+
+      section
+        h2 Vagrant
+        pre
+          code.language-javascript.
+            $ mkdir chef-workshop
+            $ cd chef-workshop
+            $ vagrant init chef/centos-6.6
+            A `Vagrantfile` has been placed in this directory...
+
+      section
+        h2 Vagrant (cont.)
+        p
+          tt ./Vagrantfile
+        pre(style='font-size: 12pt')
+          code.language-javascript.
+            Vagrant.configure(2) do |config|
+              config.vm.box = "chef/centos-6.6"
+              config.vm.network "forwarded_port", guest: 8080, host: 8080
+            end
+
+      section
+        h2 Vagrant (cont.)
+        pre(data-line='1')
+          code.language-javascript.
+            $ vagrant up
+            Bringing machine 'default' up with 'virtualbox'
+            provider...
+            $ vagrant ssh
+            Last login: Thu Jan 15 16:32:07 2015 from 10.0.2.2
+            [vagrant@localhost ~]$
+
+      section
+        h2 Directory Skeleton
+        p Install Knife Solo:
+        pre
+          code.language-javascript.
+            chef exec gem install knife-solo
+
+      section
+        h2 Directory Skeleton (cont.)
+        p Create the directory skeleton:
+        pre
+          code.language-javascript.
+            knife solo init chef-workshop
+
+      section
+        h2 Directory Skeleton (cont.)
+        pre
+          code.language-javascript.
+            ./.chef
+            ./.chef/knife.rb
+            ./.gitignore
+            ./Berksfile
+            ./cookbooks
+            ./data_bags
+            ./environments
+            ./nodes
+            ./roles
+            ./site-cookbooks
+
+      section
+        h2 A Cookbook Appears
+        pre
+          code.language-javascript.
+            knife cookbook create animal-www -o site-cookbooks/
+
+      section
+        h2 A Cookbook Appears (cont.)
+        pre
+          code.language-javascript.
+            ./attributes
+            ./definitions
+            ./files/default
+            ./libraries
+            ./metadata.rb
+            ./providers
+            ./README.md
+            ./recipes/default.rb
+            ./resources
+            ./templates/default
+
+      section
+        h3 An Awesome Site
+        p
+          tt ./www/index.html
+        pre
+          code.language-javascript= animals
+
+      section
+        h3 An Awesome Site (cont.)
+        p
+          tt ./site-cookbooks/animal-www/recipes/www.rb
+        pre
+          code.language-javascript.
+            link '/var/www' do
+              to '/vagrant/www'
+            end
+
+      section
+        h2 Running A Recipe
+        p
+          tt ./Vagrantfile
+        pre(style='font-size: 12pt')
+          code.language-javascript.
+            Vagrant.configure(2) do |config|
+              config.vm.box = "chef/centos-6.6"
+              config.vm.network "forwarded_port", guest: 8080, host: 8080
+
+              config.vm.provision "chef_solo" do |chef|
+                chef.cookbooks_path = ["site-cookbooks", "cookbooks"]
+                chef.run_list = ["recipe[animal-www::www]"]
+              end
+            end
+
+      section
+        h2 Running A Recipe (cont.)
+        p Let's run Chef
+        pre(style='font-size: 10pt')
+          code.language-javascript.
+            $ vagrant provision
+            ... Running provisioner: chef_solo...
+            ...
+            ... Run List is [recipe[animal-www::www]]
+            ... Run List expands to [animal-www::www]
+            ...
+            ... link[/var/www] created
+
+      section
+        h2 Running A Recipe (cont.)
+        p Seeing if it worked
+        pre
+          code.language-javascript.
+            $ vagrant ssh
+            Last login: Tue Mar 17 14:39:00 2015 from 10.0.2.2
+            [vagrant@localhost ~]$ cat /var/www/index.html
+            ...file contents...
+
+      section
+        h2 The Plan
+        ul
+          li.bullet We want to serve the page in nginx
+          li.bullet So we need to create an nginx config file
+          li.bullet So we need to install nginx
+          li.bullet So we need an nginx cookbook
+          li.bullet So we need a way to pull in cookbooks
+
+      section
+        h2 The Librarian
+        p
+          tt ./Gemfile
+        pre
+          code.language-javascript.
+            source 'https://rubygems.org'
+
+            gem 'knife-solo'
+            gem 'librarian-chef'
+
+      section
+        h2 The Librarian (cont.)
+        p Install Librarian-Chef
+        pre
+          code.language-javascript.
+            $ chef exec bundle install --no-deployment
+            Fetching gem metadata...
+            ...
+
+      section
+        h2 The Librarian (cont.)
+        p Create the <tt>Cheffile</tt>:
+        pre
+          code.language-javascript.
+            $ chef exec librarian-chef init
+                  create Cheffile
+
+      section
+        h2 The Librarian (cont.)
+        p
+          tt ./Cheffile
+        pre
+          code.language-javascript.
+            #!/usr/bin/env ruby
+            site 'https://supermarket.getchef.com/api/v1'
+
+            cookbook 'nginx'
+
+      section
+        h2 The Librarian (cont.)
+        p Install cookbook dependencies:
+        pre
+          code.language-javascript.
+            $ chef exec librarian-chef install
+            Installing apt (2.6.1)
+            Installing rsyslog (1.15.0)
+            [...]
+            Installing yum-epel (0.6.0)
+            Installing runit (1.5.18)
+            Installing nginx (2.7.4)
+
+      section
+        h2 The Librarian (cont.)
+        p
+          tt ./site-cookbooks/animal-www/metadata.rb
+        pre(style='font-size: 12pt')
+          code.language-javascript.
+            name             'animal-www'
+            maintainer       'YOUR_COMPANY_NAME'
+            maintainer_email 'YOUR_EMAIL'
+            license          'All rights reserved'
+            ...
+            version          '0.1.0'
+
+            depends 'nginx'
+
+      section
+        h2 Nginx Configuration
+        p
+          tt ./site-cookbooks/animal-www/recipes/www.rb
+        pre(style='font-size: 8pt')
+          code.language-javascript.
+            [...cookbook_file stuff...]
+
+            include_recipe 'nginx'
+
+            template '/etc/nginx/sites-available/animals' do
+              variables({
+                :root => '/var/www',
+                :port => 8080
+              })
+              notifies :reload, 'service[nginx]', :delayed
+            end
+
+            nginx_site 'animals' do
+              enable true
+            end
+
+      section
+        h2 Nginx Configuration (cont.)
+        p
+          tt ./site-cookbooks/animal-wwww/templates/default/animals.erb
+        pre
+          code.language-javascript.
+            server {
+              listen <%= @port %>;
+              location / {
+                root <%= @root %>;
+                index index.html index.htm;
+                sendfile off;
+              }
+            }
+
+      section
+        h2 Test It Out
+        pre
+          code.language-javascript.
+            $ vagrant provision
+            ==> default: Running provisioner: chef_solo...
+            ==> default: Detected Chef (latest) is already installed
+            Generating chef JSON and uploading...
+            ==> default: Running chef-solo...
+            ...
+        p Then load <a href="http://localhost:8080/">http://localhost:8080/</a>
+
+      section
+        h3 Let's Make It Hit a REST Endpoint
+
+      section
+        h2 Set Up Angular.js
+        p First install Bower
+        pre
+          code.language-javascript.
+            $ sudo npm install -g bower
+            ...
+            $ cd www
+            $ bower install angular
+            ...
+            $ cd ..
+
+      section
+        h2 Set Up Angular.js (cont.)
+        p
+          tt ./www/index.html
+        pre(style='font-size: 8pt')
+          code.language-javascript= animals2
+
+      section
+        h2 Set Up Angular.js (cont.)
+        p
+          tt ./www/main.js
+        pre
+          code.language-javascript.
+            angular.module('animals', [])
+            .controller('AnimalsCtrl', function ($http) {
+              var self = this;
+              $http.get('/api/random').success(function (data) {
+                self.random = data;
+              });
+            });
+
+      section
+        h2 Set Up API
+        p
+          tt ./site-cookbooks/animal-wwww/templates/default/animals.erb
+        pre(style='font-size: 10pt')
+          code.language-javascript.
+            server {
+              listen <%= @port %>;
+              location / {
+                root <%= @root %>;
+                index index.html index.htm;
+                sendfile off;
+              }
+              location /api/ {
+                proxy_pass http://localhost:3000/;
+              }
+            }
+
+      section
+        h2 Set Up API (cont.)
+        p
+          tt ./api/app.js
+        pre
+          code.language-javascript.
+            var app = require('express')();
+            var as = ['Axolotl', 'Narwhal', 'Sloth'];
+            app.get('/random', function (req, res) {
+              var r = Math.floor(Math.random()*100);
+              res.send(as[r % as.length]);
+            });
+            app.listen(3000);
+
+      section
+        h2 Set Up API (cont.)
+        p Install Express from the host:
+        pre
+          code.language-javascript.
+            $ cd api
+            $ npm install express
+            express@4.12.2 node_modules\express
+            ...
+            $ cd ..
+
+      section
+        h2 Set Up API (cont.)
+        p
+          tt ./site-cookbooks/animal-www/recipes/api.rb
+        pre
+          code.language-javascript.
+            include_recipe 'nodejs'
+
+            link '/var/api' do
+              to '/vagrant/api'
+            end
+
+      section
+        h2 Set Up API (cont.)
+        p
+          tt ./site-cookbooks/animal-www/metadata.rb
+        pre(style='font-size: 12pt')
+          code.language-javascript.
+            name             'animal-www'
+            maintainer       'YOUR_COMPANY_NAME'
+            maintainer_email 'YOUR_EMAIL'
+            license          'All rights reserved'
+            ...
+            version          '0.1.0'
+
+            depends 'nginx'
+            depends 'nodejs'
+
+      section
+        h2 Set Up API (cont.)
+        p
+          tt ./Cheffile
+        pre
+          code.language-javascript.
+            #!/usr/bin/env ruby
+            site 'https://supermarket.getchef.com/api/v1'
+
+            cookbook 'nginx'
+            cookbook 'nodejs'
+
+      section
+        h2 Set Up API (cont.)
+        p Update cookbook dependencies:
+        pre
+          code.language-javascript.
+            $ chef exec librarian-chef install
+            [...]
+            Installing nginx (2.7.4)
+            Installing nodejs (2.2.0)
+
+      section
+        h2 Set Up API (cont.)
+        p
+          tt ./Vagrantfile
+        pre(style='font-size: 12pt')
+          code.language-javascript.
+            Vagrant.configure(2) do |config|
+              config.vm.box = "chef/centos-6.6"
+              config.vm.network "forwarded_port", guest: 8080, host: 8080
+
+              config.vm.provision "chef_solo" do |chef|
+                chef.cookbooks_path = ["site-cookbooks", "cookbooks"]
+                chef.run_list = ["animal-www::api", "animal-www::www"]
+              end
+            end
+
+      section
+        h2 Set Up API (cont.)
+        p Time to run Chef again
+        pre(style='font-size: 10pt')
+          code.language-javascript.
+            $ vagrant provision
+            ... Running provisioner: chef_solo...
+            ...
+            ... Run List expands to [animal-www::www, animal-www::api]
+            ...
+
+      section
+        h2 Test The API
+        p Start Express manually:
+        pre
+          code.language-javascript.
+            $ vagrant ssh
+            Last login: Tue Mar 17 21:33:51 2015 from 10.0.2.2
+            [vagrant@localhost ~]$ node /var/api/app.js
+        p Then load <a href="http://localhost:8080/">http://localhost:8080/</a>
+
+      section
+        h3 Let's Run Express As a Service
+
+      section
+        h2 Runit Service
+        p
+          | Append to:
+          tt ./site-cookbooks/animal-www/recipes/api.rb
+        pre(style='font-size: 8pt')
+          code.language-javascript.
+            # ...existing lines...
+
+            user 'api' do
+              system true
+              shell '/sbin/nologin'
+            end
+
+            include_recipe 'runit'
+            runit_service 'api' do
+              default_logger true
+              options({
+                :user => 'api',
+                :path => '/var/api/app.js'
+              })
+            end
+
+      section
+        h2 Runit Service (cont.)
+        tt
+          p ./site-cookbooks/animal-www/templates/default/sv-api-run.erb
+        pre
+          code.language-javascript.
+            #!/bin/sh
+            exec 2>&1
+            exec chpst -u <%= @options[:user] %> \
+              node "<%= @options[:path] %>"
+
+      section
+        h2 Runit Service (cont.)
+        p
+          tt ./site-cookbooks/animal-www/metadata.rb
+        pre(style='font-size: 12pt')
+          code.language-javascript.
+            name             'animal-www'
+            ...
+            version          '0.1.0'
+
+            depends 'nginx'
+            depends 'nodejs'
+            depends 'runit'
+
+      section
+        h2 Runit Service (cont.)
+        p
+          tt ./Cheffile
+        pre
+          code.language-javascript.
+            #!/usr/bin/env ruby
+            site 'https://supermarket.getchef.com/api/v1'
+
+            cookbook 'nginx'
+            cookbook 'nodejs'
+            cookbook 'runit'
+
+      section
+        h2 Runit Service (cont.)
+        p Time to run Chef again
+        pre(style='font-size: 10pt')
+          code.language-javascript.
+            $ vagrant provision
+            ... Running provisioner: chef_solo...
+            ...
+            ... user[api] created
+            ...
+            ... runit_service[api] enabled
+            ...
+        p Then load <a href="http://localhost:8080/">http://localhost:8080/</a>
+
+      section
+        h3 Refactoring Time
+
+      section
+        h2 Default Recipe
+        p
+          tt ./site-cookbooks/animal-www/recipes/default.rb
+        pre
+          code.language-javascript.
+            include_recipe 'animal-www::www'
+            include_recipe 'animal-www::api'
+
+      section
+        h2 Default Recipe (cont.)
+        p
+          tt ./Vagrantfile
+        pre(style='font-size: 12pt')
+          code.language-javascript.
+            Vagrant.configure(2) do |config|
+              config.vm.box = "chef/centos-6.6"
+              config.vm.network "forwarded_port", guest: 8080, host: 8080
+
+              config.vm.provision "chef_solo" do |chef|
+                chef.cookbooks_path = ["site-cookbooks", "cookbooks"]
+                chef.run_list = ["animal-www"]
+              end
+            end
+
+      section
+        h2 Default Recipe (cont.)
+        p Time to run Chef again
+        pre(style='font-size: 10pt')
+          code.language-javascript.
+            $ vagrant provision
+            ... Running provisioner: chef_solo...
+            ...
+            ... Run List expands to [animal-www]
+            ...
+
+      section
+        h2 Attributes
+        p
+          tt ./site-cookbooks/animal-www/recipes/api.rb
+        pre(style='font-size: 10pt')
+          code.language-javascript.
+            user 'api' do
+              system true
+              shell '/sbin/nologin'
+            end
+
+            runit_service 'api' do
+              default_logger true
+              options({
+                :user => 'api',
+                :path => '/var/api/app.js'
+              })
+            end
+
+      section
+        h2 Attributes (cont.)
+        p
+          tt ./site-cookbooks/animal-www/attributes/default.rb
+        pre
+          code.language-javascript.
+            node.default['animal-www']['api']['user'] = 'api'
+
+      section
+        h2 Attributes (cont.)
+        p
+          tt ./site-cookbooks/animal-www/recipes/api.rb
+        pre(style='font-size: 10pt')
+          code.language-javascript.
+            user node['animal-www']['api']['user'] do
+              system true
+              shell '/sbin/nologin'
+            end
+
+            runit_service 'api' do
+              default_logger true
+              options({
+                :user => node['animal-www']['api']['user'],
+                :path => '/var/api/app.js'
+              })
+            end
+
+      section
+        h2 Attributes (cont.)
+        p
+          tt ./Vagrantfile
+        pre(style='font-size: 10pt')
+          code.language-javascript.
+            Vagrant.configure(2) do |config|
+              config.vm.box = "chef/centos-6.6"
+              config.vm.network "forwarded_port", guest: 8080, host: 8080
+
+              config.vm.provision "chef_solo" do |chef|
+                chef.cookbooks_path = ["site-cookbooks", "cookbooks"]
+                chef.run_list = ["animal-www"]
+                chef.json = {
+                  "animal-www" => {
+                    "api" => { "user" => "derp" }
+                  }
+                }
+              end
+            end
+
+      section
+        h2 Attributes (cont.)
+        p Time to run Chef again
+        pre(style='font-size: 10pt')
+          code.language-javascript.
+            $ vagrant provision
+            ... Running provisioner: chef_solo...
+            ...
+            ... user[derp] created
+            ...
+
+      section
+        h2 Attributes (cont.)
+        pre
+          code.language-javascript.
+            $ vagrant ssh
+            Last login: Wed Mar 18 19:45:42 2015 from 10.0.2.2
+            [vagrant@localhost ~]$ ps -eo user,pid,cmd | grep node
+            derp      8913 node /var/api/app.js
+            vagrant   8942 grep node
+
+      section
+        h2 Foodcritic
+        p Lint your cookbook:
+        pre
+          code.language-javascript.
+            $ foodcritic site-cookbooks/animal-www
+            FC008: Generated cookbook metadata needs updating...
+            FC008: Generated cookbook metadata needs updating...
+        p
+          a(href='http://acrmp.github.io/foodcritic/#FC008') What is FC008?
+
+      section
+        p Now...
+        h2 Go Forth And Chef
+
+      section
+        h2 Topics Not Covered
+        ul
+          li Idempotency
+          li LWRPs
 
     script(src='build/build.js')
