@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Chef Workshop</title>
+    <link rel="stylesheet" type="text/css" href="build/build.css">
+  </head>
+  <body>
+    <article>
+      <section>
+        <h1>Chef Workshop</h1>
+      </section>
+      <section>
+        <h2>Outline</h2>
+        <p>Let's use Chef to make a site that does stuff</p>
+      </section>
+      <section>
+        <h2>Pre-Requisites</h2>
+        <ul>
+          <li><a href="https://downloads.chef.io/chef-dk/">ChefDK</a></li>
+          <li><a href="https://nodejs.org/">Node.js</a></li>
+          <li><a href="https://www.vagrantup.com/downloads.html">Vagrant</a></li>
+          <li><a href="https://www.virtualbox.org/wiki/Downloads">VirtualBox</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>Vagrant</h2>
+        <pre><code class="language-javascript">$ mkdir chef-workshop
+$ cd chef-workshop
+$ vagrant init chef/centos-6.6
+A `Vagrantfile` has been placed in this directory...
+</code></pre>
+      </section>
+      <section>
+        <h2>Vagrant (cont.)</h2>
+        <p>
+          <tt>./Vagrantfile</tt>
+        </p>
+        <pre style="font-size: 12pt"><code class="language-javascript">Vagrant.configure(2) do |config|
+  config.vm.box = "chef/centos-6.6"
+  config.vm.network "forwarded_port", guest: 8080, host: 8080
+end
+</code></pre>
+      </section>
+      <section>
+        <h2>Vagrant (cont.)</h2>
+        <pre data-line="1"><code class="language-javascript">$ vagrant up
+Bringing machine 'default' up with 'virtualbox'
+provider...
+$ vagrant ssh
+Last login: Thu Jan 15 16:32:07 2015 from 10.0.2.2
+[vagrant@localhost ~]$
+</code></pre>
+      </section>
+      <section>
+        <h2>Directory Skeleton</h2>
+        <p>Install Knife Solo:</p>
+        <pre><code class="language-javascript">chef exec gem install knife-solo
+</code></pre>
+      </section>
+      <section>
+        <h2>Directory Skeleton (cont.)</h2>
+        <p>Create the directory skeleton:</p>
+        <pre><code class="language-javascript">knife solo init chef-workshop
+</code></pre>
+      </section>
+      <section>
+        <h2>Directory Skeleton (cont.)</h2>
+        <pre><code class="language-javascript">./.chef
+./.chef/knife.rb
+./.gitignore
+./Berksfile
+./cookbooks
+./data_bags
+./environments
+./nodes
+./roles
+./site-cookbooks
+</code></pre>
+      </section>
+      <section>
+        <h2>A Cookbook Appears</h2>
+        <pre><code class="language-javascript">knife cookbook create animal-www -o site-cookbooks/
+</code></pre>
+      </section>
+      <section>
+        <h2>A Cookbook Appears (cont.)</h2>
+        <pre><code class="language-javascript">./attributes
+./definitions
+./files/default
+./libraries
+./metadata.rb
+./providers
+./README.md
+./recipes/default.rb
+./resources
+./templates/default
+</code></pre>
+      </section>
+      <section>
+        <h3>An Awesome Site</h3>
+        <p>
+          <tt>./www/index.html</tt>
+        </p>
+        <pre><code class="language-javascript">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;&lt;title&gt;Animals R Fun&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+  &lt;p&gt;Can I haz animals?&lt;/p&gt;
+  &lt;ul&gt;&lt;li&gt;Aardvarks&lt;/li&gt;&lt;li&gt;Yeti Crab&lt;/li&gt;&lt;/ul&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+      </section>
+      <section>
+        <h3>An Awesome Site (cont.)</h3>
+        <p>
+          <tt>./site-cookbooks/animal-www/recipes/www.rb</tt>
+        </p>
+        <pre><code class="language-javascript">link '/var/www' do
+  to '/vagrant/www'
+end
+</code></pre>
+      </section>
+      <section>
+        <h2>Running A Recipe</h2>
+        <p>
+          <tt>./Vagrantfile</tt>
+        </p>
+        <pre style="font-size: 12pt"><code class="language-javascript">Vagrant.configure(2) do |config|
+  config.vm.box = "chef/centos-6.6"
+  config.vm.network "forwarded_port", guest: 8080, host: 8080
+  
+  config.vm.provision "chef_solo" do |chef|
+    chef.cookbooks_path = ["site-cookbooks", "cookbooks"]
+    chef.run_list = ["recipe[animal-www::www]"]
+  end
+end
+</code></pre>
+      </section>
+      <section>
+        <h2>Running A Recipe (cont.)</h2>
+        <p>Let's run Chef</p>
+        <pre style="font-size: 10pt"><code class="language-javascript">$ vagrant provision
+... Running provisioner: chef_solo...
+...
+... Run List is [recipe[animal-www::www]]
+... Run List expands to [animal-www::www]
+...
+... link[/var/www] created
+</code></pre>
+      </section>
+      <section>
+        <h2>Running A Recipe (cont.)</h2>
+        <p>Seeing if it worked</p>
+        <pre><code class="language-javascript">$ vagrant ssh
+Last login: Tue Mar 17 14:39:00 2015 from 10.0.2.2
+[vagrant@localhost ~]$ cat /var/www/index.html
+...file contents...
+</code></pre>
+      </section>
+      <section>
+        <h2>The Plan</h2>
+        <ul>
+          <li class="bullet">We want to serve the page in nginx</li>
+          <li class="bullet">So we need to create an nginx config file</li>
+          <li class="bullet">So we need to install nginx</li>
+          <li class="bullet">So we need an nginx cookbook</li>
+          <li class="bullet">So we need a way to pull in cookbooks</li>
+        </ul>
+      </section>
+      <section>
+        <h2>The Librarian</h2>
+        <p>
+          <tt>./Gemfile</tt>
+        </p>
+        <pre><code class="language-javascript">source 'https://rubygems.org'
+
+gem 'knife-solo'
+gem 'librarian-chef'
+</code></pre>
+      </section>
+      <section>
+        <h2>The Librarian (cont.)</h2>
+        <p>Install Librarian-Chef</p>
+        <pre><code class="language-javascript">$ chef exec bundle install --no-deployment
+Fetching gem metadata...
+...
+</code></pre>
+      </section>
+      <section>
+        <h2>The Librarian (cont.)</h2>
+        <p>Create the <tt>Cheffile</tt>:</p>
+        <pre><code class="language-javascript">$ chef exec librarian-chef init
+      create Cheffile
+      </code></pre>
+      </section>
+      <section>
+        <h2>The Librarian (cont.)</h2>
+        <p>
+          <tt>./Cheffile</tt>
+        </p>
+        <pre><code class="language-javascript">#!/usr/bin/env ruby
+site 'https://supermarket.getchef.com/api/v1'
+
+cookbook 'nginx'
+</code></pre>
+      </section>
+      <section>
+        <h2>The Librarian (cont.)</h2>
+        <p>Install cookbook dependencies:</p>
+        <pre><code class="language-javascript">$ chef exec librarian-chef install
+Installing apt (2.6.1)
+Installing rsyslog (1.15.0)
+[...]
+Installing yum-epel (0.6.0)
+Installing runit (1.5.18)
+Installing nginx (2.7.4)
+</code></pre>
+      </section>
+      <section>
+        <h2>The Librarian (cont.)</h2>
+        <p>
+          <tt>./site-cookbooks/animal-www/metadata.rb</tt>
+        </p>
+        <pre style="font-size: 12pt"><code class="language-javascript">name             'animal-www'
+maintainer       'YOUR_COMPANY_NAME'
+maintainer_email 'YOUR_EMAIL'
+license          'All rights reserved'
+...
+version          '0.1.0'
+
+depends 'nginx'
+</code></pre>
+      </section>
+      <section>
+        <h2>Nginx Configuration</h2>
+        <p>
+          <tt>./site-cookbooks/animal-www/recipes/www.rb</tt>
+        </p>
+        <pre style="font-size: 8pt"><code class="language-javascript">[...cookbook_file stuff...]
+
+include_recipe 'nginx'
+
+template '/etc/nginx/sites-available/animals' do
+  variables({
+    :root => '/var/www',
+    :port => 8080
+  })
+  notifies :reload, 'service[nginx]', :delayed
+end
+
+nginx_site 'animals' do
+  enable true
+end
+</code></pre>
+      </section>
+      <section>
+        <h2>Nginx Configuration (cont.)</h2>
+        <p>
+          <tt>./site-cookbooks/animal-wwww/templates/default/animals.erb</tt>
+        </p>
+        <pre><code class="language-javascript">server {
+  listen <%= @port %>;
+  location / {
+    root <%= @root %>;
+    index index.html index.htm;
+    sendfile off;
+  }
+}
+</code></pre>
+      </section>
+      <section>
+        <h2>Test It Out</h2>
+        <pre><code class="language-javascript">$ vagrant provision
+==> default: Running provisioner: chef_solo...
+==> default: Detected Chef (latest) is already installed
+Generating chef JSON and uploading...
+==> default: Running chef-solo...
+...</code></pre>
+        <p>Then load <a href="http://localhost:8080/">http://localhost:8080/</a></p>
+      </section>
+      <section>
+        <h3>Let's Make It Hit a REST Endpoint</h3>
+      </section>
+      <section>
+        <h2>Set Up Angular.js</h2>
+        <p>First install Bower</p>
+        <pre><code class="language-javascript">$ sudo npm install -g bower
+...
+$ cd www
+$ bower install angular
+...
+$ cd ..
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up Angular.js (cont.)</h2>
+        <p>
+          <tt>./www/index.html</tt>
+        </p>
+        <pre style="font-size: 8pt"><code class="language-javascript">&lt;!DOCTYPE html&gt;
+&lt;html ng-app=&quot;animals&quot;&gt;
+&lt;head&gt;
+  &lt;title&gt;Animals R Fun&lt;/title&gt;
+  &lt;script type=&quot;text/javascript&quot;
+    src=&quot;bower_components/angular/angular.js&quot;&gt;&lt;/script&gt;
+  &lt;script type=&quot;text/javascript&quot; src=&quot;main.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body ng-controller=&quot;AnimalsCtrl as ctrl&quot;&gt;
+  &lt;p&gt;Can I haz animals?&lt;/p&gt;
+  &lt;ul&gt;&lt;li&gt;Aardvarks&lt;/li&gt;&lt;li&gt;Yeti Crab&lt;/li&gt;&lt;/ul&gt;
+  &lt;p&gt;More plz: {{ctrl.random}}&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up Angular.js (cont.)</h2>
+        <p>
+          <tt>./www/main.js</tt>
+        </p>
+        <pre><code class="language-javascript">angular.module('animals', [])
+.controller('AnimalsCtrl', function ($http) {
+  var self = this;
+  $http.get('/api/random').success(function (data) {
+    self.random = data;
+  });
+});
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up API</h2>
+        <p>
+          <tt>./site-cookbooks/animal-wwww/templates/default/animals.erb</tt>
+        </p>
+        <pre style="font-size: 10pt"><code class="language-javascript">server {
+  listen <%= @port %>;
+  location / {
+    root <%= @root %>;
+    index index.html index.htm;
+    sendfile off;
+  }
+  location /api/ {
+    proxy_pass http://localhost:3000/;
+  }
+}
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up API (cont.)</h2>
+        <p>
+          <tt>./api/app.js</tt>
+        </p>
+        <pre><code class="language-javascript">var app = require('express')();
+var as = ['Axolotl', 'Narwhal', 'Sloth'];
+app.get('/random', function (req, res) {
+  var r = Math.floor(Math.random()*100);
+  res.send(as[r % as.length]);
+});
+app.listen(3000);
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up API (cont.)</h2>
+        <p>Install Express from the host:</p>
+        <pre><code class="language-javascript">$ cd api
+$ npm install express
+express@4.12.2 node_modules\express
+...
+$ cd ..
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up API (cont.)</h2>
+        <p>
+          <tt>./site-cookbooks/animal-www/recipes/api.rb</tt>
+        </p>
+        <pre><code class="language-javascript">include_recipe 'nodejs'
+
+link '/var/api' do
+  to '/vagrant/api'
+end
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up API (cont.)</h2>
+        <p>
+          <tt>./site-cookbooks/animal-www/metadata.rb</tt>
+        </p>
+        <pre style="font-size: 12pt"><code class="language-javascript">name             'animal-www'
+maintainer       'YOUR_COMPANY_NAME'
+maintainer_email 'YOUR_EMAIL'
+license          'All rights reserved'
+...
+version          '0.1.0'
+
+depends 'nginx'
+depends 'nodejs'
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up API (cont.)</h2>
+        <p>
+          <tt>./Cheffile</tt>
+        </p>
+        <pre><code class="language-javascript">#!/usr/bin/env ruby
+site 'https://supermarket.getchef.com/api/v1'
+
+cookbook 'nginx'
+cookbook 'nodejs'
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up API (cont.)</h2>
+        <p>Update cookbook dependencies:</p>
+        <pre><code class="language-javascript">$ chef exec librarian-chef install
+[...]
+Installing nginx (2.7.4)
+Installing nodejs (2.2.0)
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up API (cont.)</h2>
+        <p>
+          <tt>./Vagrantfile</tt>
+        </p>
+        <pre style="font-size: 12pt"><code class="language-javascript">Vagrant.configure(2) do |config|
+  config.vm.box = "chef/centos-6.6"
+  config.vm.network "forwarded_port", guest: 8080, host: 8080
+  
+  config.vm.provision "chef_solo" do |chef|
+    chef.cookbooks_path = ["site-cookbooks", "cookbooks"]
+    chef.run_list = ["animal-www::api", "animal-www::www"]
+  end
+end
+</code></pre>
+      </section>
+      <section>
+        <h2>Set Up API (cont.)</h2>
+        <p>Time to run Chef again</p>
+        <pre style="font-size: 10pt"><code class="language-javascript">$ vagrant provision
+... Running provisioner: chef_solo...
+...
+... Run List expands to [animal-www::www, animal-www::api]
+...
+</code></pre>
+      </section>
+      <section>
+        <h2>Test The API</h2>
+        <p>Start Express manually:</p>
+        <pre><code class="language-javascript">$ vagrant ssh
+Last login: Tue Mar 17 21:33:51 2015 from 10.0.2.2
+[vagrant@localhost ~]$ node /var/api/app.js</code></pre>
+        <p>Then load <a href="http://localhost:8080/">http://localhost:8080/</a></p>
+      </section>
+      <section>
+        <h3>Let's Run Express As a Service</h3>
+      </section>
+      <section>
+        <h2>Runit Service</h2>
+        <p>Append to:
+          <tt>./site-cookbooks/animal-www/recipes/api.rb</tt>
+        </p>
+        <pre style="font-size: 8pt"><code class="language-javascript"># ...existing lines...
+
+user 'api' do
+  system true
+  shell '/sbin/nologin'
+end
+
+include_recipe 'runit'
+runit_service 'api' do
+  default_logger true
+  options({
+    :user => 'api',
+    :path => '/var/api/app.js'
+  })
+end
+</code></pre>
+      </section>
+      <section>
+        <h2>Runit Service (cont.)</h2>
+        <tt>
+          <p>./site-cookbooks/animal-www/templates/default/sv-api-run.erb</p>
+        </tt>
+        <pre><code class="language-javascript">#!/bin/sh
+exec 2>&1
+exec chpst -U <%= @options[:user] %> \
+  node "<%= @options[:path] %>"
+  </code></pre>
+      </section>
+      <section>
+        <h2>Runit Service (cont.)</h2>
+        <p>
+          <tt>./site-cookbooks/animal-www/metadata.rb</tt>
+        </p>
+        <pre style="font-size: 12pt"><code class="language-javascript">name             'animal-www'
+...
+version          '0.1.0'
+
+depends 'nginx'
+depends 'nodejs'
+depends 'runit'
+</code></pre>
+      </section>
+      <section>
+        <h2>Runit Service (cont.)</h2>
+        <p>
+          <tt>./Cheffile</tt>
+        </p>
+        <pre><code class="language-javascript">#!/usr/bin/env ruby
+site 'https://supermarket.getchef.com/api/v1'
+
+cookbook 'nginx'
+cookbook 'nodejs'
+cookbook 'runit'
+</code></pre>
+      </section>
+      <section>
+        <h2>Runit Service (cont.)</h2>
+        <p>Time to run Chef again</p>
+        <pre style="font-size: 10pt"><code class="language-javascript">$ vagrant provision
+... Running provisioner: chef_solo...
+...
+... user[api] created
+...
+... runit_service[api] enabled
+...</code></pre>
+        <p>Then load <a href="http://localhost:8080/">http://localhost:8080/</a></p>
+      </section>
+      <section>
+        <h3>Refactoring Time</h3>
+      </section>
+      <section>
+        <h2>Default Recipe</h2>
+        <p>
+          <tt>./site-cookbooks/animal-www/recipes/default.rb</tt>
+        </p>
+        <pre><code class="language-javascript">include_recipe 'animal-www::www'
+include_recipe 'animal-www::api'
+</code></pre>
+      </section>
+      <section>
+        <h2>Default Recipe (cont.)</h2>
+        <p>
+          <tt>./Vagrantfile</tt>
+        </p>
+        <pre style="font-size: 12pt"><code class="language-javascript">Vagrant.configure(2) do |config|
+  config.vm.box = "chef/centos-6.6"
+  config.vm.network "forwarded_port", guest: 8080, host: 8080
+  
+  config.vm.provision "chef_solo" do |chef|
+    chef.cookbooks_path = ["site-cookbooks", "cookbooks"]
+    chef.run_list = ["animal-www"]
+  end
+end
+</code></pre>
+      </section>
+      <section>
+        <h2>Default Recipe (cont.)</h2>
+        <p>Time to run Chef again</p>
+        <pre style="font-size: 10pt"><code class="language-javascript">$ vagrant provision
+... Running provisioner: chef_solo...
+...
+... Run List expands to [animal-www]
+...
+</code></pre>
+      </section>
+      <section>
+        <h2>Attributes</h2>
+      </section>
+      <section>
+        <h2>Idempotent</h2>
+      </section>
+      <section>
+        <h2>Foodcritic</h2>
+      </section>
+      <section>
+        <p>Now...</p>
+        <h2>Go Forth And Chef</h2>
+      </section>
+    </article>
+    <script src="build/build.js"></script>
+  </body>
+</html>
