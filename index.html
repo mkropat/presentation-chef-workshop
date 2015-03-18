@@ -16,6 +16,15 @@
         <p>Let's use Chef to make a site that does stuff</p>
       </section>
       <section>
+        <h2>Slides</h2>
+        <ul>
+          <li class="bullet">Follow along at:<br/><a href="http://mkropat.github.io/presentation-chef-workshop/">http://mkropat.github.io/presentation-chef-workshop/</a></li>
+          <li class="bullet">Keep in mind: the slides are boring</li>
+          <li class="bullet">All the interesting bits come from the questions you ask</li>
+          <li class="bullet">Also: typing in the Chef-y bits helps you learn</li>
+        </ul>
+      </section>
+      <section>
         <h2>Pre-Requisites</h2>
         <ul>
           <li><a href="https://downloads.chef.io/chef-dk/">ChefDK</a></li>
@@ -487,7 +496,7 @@ end
         </tt>
         <pre><code class="language-javascript">#!/bin/sh
 exec 2>&1
-exec chpst -U <%= @options[:user] %> \
+exec chpst -u <%= @options[:user] %> \
   node "<%= @options[:path] %>"
   </code></pre>
       </section>
@@ -570,12 +579,97 @@ end
       </section>
       <section>
         <h2>Attributes</h2>
+        <p>
+          <tt>./site-cookbooks/animal-www/recipes/api.rb</tt>
+        </p>
+        <pre style="font-size: 10pt"><code class="language-javascript">user 'api' do
+  system true
+  shell '/sbin/nologin'
+end
+
+runit_service 'api' do
+  default_logger true
+  options({
+    :user => 'api',
+    :path => '/var/api/app.js'
+  })
+end
+</code></pre>
       </section>
       <section>
-        <h2>Idempotent</h2>
+        <h2>Attributes (cont.)</h2>
+        <p>
+          <tt>./site-cookbooks/animal-www/attributes/default.rb</tt>
+        </p>
+        <pre><code class="language-javascript">node.default['animal-www']['api']['user'] = 'api'
+</code></pre>
+      </section>
+      <section>
+        <h2>Attributes (cont.)</h2>
+        <p>
+          <tt>./site-cookbooks/animal-www/recipes/api.rb</tt>
+        </p>
+        <pre style="font-size: 10pt"><code class="language-javascript">user node['animal-www']['api']['user'] do
+  system true
+  shell '/sbin/nologin'
+end
+
+runit_service 'api' do
+  default_logger true
+  options({
+    :user => node['animal-www']['api']['user'],
+    :path => '/var/api/app.js'
+  })
+end
+</code></pre>
+      </section>
+      <section>
+        <h2>Attributes (cont.)</h2>
+        <p>
+          <tt>./Vagrantfile</tt>
+        </p>
+        <pre style="font-size: 10pt"><code class="language-javascript">Vagrant.configure(2) do |config|
+  config.vm.box = "chef/centos-6.6"
+  config.vm.network "forwarded_port", guest: 8080, host: 8080
+  
+  config.vm.provision "chef_solo" do |chef|
+    chef.cookbooks_path = ["site-cookbooks", "cookbooks"]
+    chef.run_list = ["animal-www"]
+    chef.json = {
+      "animal-www" => {
+        "api" => { "user" => "derp" }
+      }
+    }
+  end
+end
+</code></pre>
+      </section>
+      <section>
+        <h2>Attributes (cont.)</h2>
+        <p>Time to run Chef again</p>
+        <pre style="font-size: 10pt"><code class="language-javascript">$ vagrant provision
+... Running provisioner: chef_solo...
+...
+... user[derp] created
+...
+</code></pre>
+      </section>
+      <section>
+        <h2>Attributes (cont.)</h2>
+        <pre><code class="language-javascript">$ vagrant ssh
+Last login: Wed Mar 18 19:45:42 2015 from 10.0.2.2
+[vagrant@localhost ~]$ ps -eo user,pid,cmd | grep node
+derp      8913 node /var/api/app.js
+vagrant   8942 grep node
+</code></pre>
       </section>
       <section>
         <h2>Foodcritic</h2>
+        <p>Lint your cookbook:</p>
+        <pre><code class="language-javascript">$ foodcritic site-cookbooks/animal-www
+FC008: Generated cookbook metadata needs updating...
+FC008: Generated cookbook metadata needs updating...</code></pre>
+        <p><a href="http://acrmp.github.io/foodcritic/#FC008">What is FC008?</a></p>
       </section>
       <section>
         <p>Now...</p>
