@@ -83,7 +83,7 @@ html
         p Create the directory skeleton:
         pre
           code.language-javascript.
-            knife solo init chef-workshop
+            knife solo init .
 
       section
         h2 Directory Skeleton (cont.)
@@ -227,6 +227,17 @@ html
 
       section
         h2 The Librarian (cont.)
+        p <strong>WINDOW ONLY</strong> — Set <tt>SSL_CERT_FILE</tt>
+        pre
+          code.language-javascript.
+            PS > [Environment]::SetEnvironmentVariable(
+              "SSL_CERT_FILE",
+              "C:\opscode\chefdk\embedded\ssl\certs\cacert.pem",
+              "User")
+            
+
+      section
+        h2 The Librarian (cont.)
         p Install cookbook dependencies:
         pre
           code.language-javascript.
@@ -313,6 +324,7 @@ html
             $ sudo npm install -g bower
             ...
             $ cd www
+            $ mkdir bower_components
             $ bower install angular
             ...
             $ cd ..
@@ -376,6 +388,7 @@ html
         pre
           code.language-javascript.
             $ cd api
+            $ mkdir node_modules
             $ npm install express
             express@4.12.2 node_modules\express
             ...
