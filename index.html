@@ -71,7 +71,7 @@ Last login: Thu Jan 15 16:32:07 2015 from 10.0.2.2
       <section>
         <h2>Directory Skeleton (cont.)</h2>
         <p>Create the directory skeleton:</p>
-        <pre><code class="language-javascript">knife solo init chef-workshop
+        <pre><code class="language-javascript">knife solo init .
 </code></pre>
       </section>
       <section>
@@ -218,6 +218,16 @@ cookbook 'nginx'
       </section>
       <section>
         <h2>The Librarian (cont.)</h2>
+        <p><strong>WINDOW ONLY</strong> — Set <tt>SSL_CERT_FILE</tt></p>
+        <pre><code class="language-javascript">PS > [Environment]::SetEnvironmentVariable(
+  "SSL_CERT_FILE",
+  "C:\opscode\chefdk\embedded\ssl\certs\cacert.pem",
+  "User")
+  
+  </code></pre>
+      </section>
+      <section>
+        <h2>The Librarian (cont.)</h2>
         <p>Install cookbook dependencies:</p>
         <pre><code class="language-javascript">$ chef exec librarian-chef install
 Installing apt (2.6.1)
@@ -299,6 +309,7 @@ Generating chef JSON and uploading...
         <pre><code class="language-javascript">$ sudo npm install -g bower
 ...
 $ cd www
+$ mkdir bower_components
 $ bower install angular
 ...
 $ cd ..
@@ -375,6 +386,7 @@ app.listen(3000);
         <h2>Set Up API (cont.)</h2>
         <p>Install Express from the host:</p>
         <pre><code class="language-javascript">$ cd api
+$ mkdir node_modules
 $ npm install express
 express@4.12.2 node_modules\express
 ...
